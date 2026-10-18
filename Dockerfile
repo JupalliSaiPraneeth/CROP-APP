@@ -1,14 +1,20 @@
 # Production Dockerfile for CropAI 5-Model FastAPI Backend
-# Supports Render, Railway, Hugging Face Spaces, Fly.io, and Cloud VPS
+# Optimized for low-RAM cloud containers (Render Free Tier 512MB, Railway, HF Spaces)
 
 FROM python:3.10-slim
 
 # Prevent Python from writing .pyc files and enable unbuffered logging
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PORT=8001 \
+    PORT=10000 \
     MODELS_DIR=/app/models \
     REPORTS_DIR=/app/reports \
+    PEST_GUARD_ENABLED=false \
+    OMP_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1 \
+    OPENBLAS_NUM_THREADS=1 \
+    VECLIB_MAXIMUM_THREADS=1 \
+    NUMEXPR_NUM_THREADS=1 \
     CORS_ORIGINS="*"
 
 WORKDIR /app
@@ -22,7 +28,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install CPU-optimized PyTorch first to save ~3GB of GPU CUDA overhead
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir torch>=2.0.0 --index-url https://download.pytorch.org/whl/cpu
+    pip install --no-cache-dir torch>=2.0.0 torchvision --index-url https://download.pytorch.org/whl/cpu
 
 # Copy requirements and install backend dependencies
 COPY backend/requirements.txt /app/requirements.txt
@@ -41,11 +47,11 @@ COPY reports /app/reports
 # Ensure reports directory is writable for runtime diagnostics
 RUN mkdir -p /app/reports && chmod -R 777 /app/reports
 
-EXPOSE 8001
+EXPOSE 10000 8001
 
 # Healthcheck to monitor backend uptime
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:${PORT:-8001}/api/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD curl -f http://localhost:${PORT:-10000}/api/health || exit 1
 
-# Launch FastAPI via Uvicorn
-CMD ["sh", "-c", "uvicorn backend.app.main:app --host 0.0.0.0 --port ${PORT:-8001} --workers 1"]
+# Launch FastAPI via Uvicorn (binds immediately to Render's $PORT or 10000)
+CMD ["sh", "-c", "uvicorn backend.app.main:app --host 0.0.0.0 --port ${PORT:-10000} --workers 1"]

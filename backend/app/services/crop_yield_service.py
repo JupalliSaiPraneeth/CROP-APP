@@ -99,34 +99,37 @@ class CropYieldService:
         self.metrics: Dict[str, float] = {}
         self.state_districts: Dict[str, List[str]] = {}
 
-        self._load_model_and_metadata()
+        self._init_metadata()
 
-    def _load_model_and_metadata(self):
-        """Loads the pre-trained scikit-learn Pipeline and metadata."""
+    def ensure_loaded(self) -> bool:
+        if self.is_loaded and self.pipeline is not None:
+            return True
+        return self._load_model()
+
+    def _load_model(self) -> bool:
+        """Loads the pre-trained scikit-learn Pipeline with memory-mapping (mmap_mode='r')."""
         try:
             if not self.model_path.exists():
                 self.load_error = f"Model artifact not found at: {self.model_path}"
                 logger.warning(self.load_error)
-                return
+                return False
 
-            logger.info("Loading Crop Yield Random Forest Pipeline from: %s", self.model_path)
-            self.pipeline = joblib.load(self.model_path)
+            logger.info("Loading Crop Yield Random Forest Pipeline from: %s (mmap_mode='r')", self.model_path)
+            self.pipeline = joblib.load(self.model_path, mmap_mode='r')
 
             # Apply runtime patch for SimpleImputer instances in pipeline if needed
             self._patch_imputer_attributes()
 
-            # Load or extract metadata
-            self._init_metadata()
-
             self.is_loaded = True
-            logger.info(
-                "Crop Yield Model loaded successfully. Covered: %d states, %d districts, %d crops, %d seasons.",
-                len(self.states), len(self.districts), len(self.crops), len(self.seasons)
-            )
+            self.load_error = None
+            import gc; gc.collect()
+            logger.info("Crop Yield Model loaded successfully (mmap_mode='r').")
+            return True
 
         except Exception as e:
             self.load_error = str(e)
             logger.error("Failed to load Crop Yield Model: %s", e, exc_info=True)
+            return False
 
     def _patch_imputer_attributes(self):
         """Ensures SimpleImputer instances have _fill_dtype for newer scikit-learn versions."""
@@ -235,6 +238,10 @@ class CropYieldService:
             "Crop_Year": int(crop_year),
             "Area": float(area)
         }])
+
+        self.ensure_loaded()
+        if not self.is_loaded or self.pipeline is None:
+            raise RuntimeError(f"Crop Yield Pipeline is not loaded: {self.load_error}")
 
         start_time = time.perf_counter()
         raw_pred = self.pipeline.predict(input_df)

@@ -3,7 +3,7 @@ services:
     name: cropai-backend
     runtime: docker
     dockerfilePath: ./Dockerfile
-    plan: starter
+    plan: free
     region: oregon
     healthCheckPath: /api/health
     envVars:
@@ -13,3 +13,5 @@ services:
         value: "*"
       - key: CORS_ORIGIN_REGEX
         value: "https://.*\\.vercel\\.app"
+      - key: PEST_GUARD_ENABLED
+        value: "false"

@@ -59,9 +59,13 @@ class PestDetectionService:
         self.train_metrics: Dict[str, Any] = {}
 
         self._load_taxonomy()
-        self.load_model()
-        self.load_guard_model()
+        # Models will be lazily loaded on first request to preserve RAM
         self._initialized = True
+
+    def ensure_loaded(self) -> bool:
+        if self.is_loaded and self.model is not None:
+            return True
+        return self.load_model()
 
     def _load_taxonomy(self):
         """Loads optional IP102 human-readable taxonomy names if available."""
@@ -76,7 +80,7 @@ class PestDetectionService:
                 logger.warning("Failed to parse IP102 taxonomy JSON: %s", e)
 
     def load_model(self) -> bool:
-        """Loads best.pt using Ultralytics YOLO."""
+        """Loads best.pt using Ultralytics YOLO with memory constraints."""
         try:
             if not self.model_path.exists():
                 raise FileNotFoundError(
@@ -84,9 +88,12 @@ class PestDetectionService:
                     "Please verify best.pt is located in models/IP102_Pest_Detection/."
                 )
 
-            # Lazy import ultralytics
+            # Lazy import ultralytics & torch with single-threaded execution to conserve memory
             from ultralytics import YOLO
             import torch
+            import gc
+            torch.set_num_threads(1)
+            torch.set_grad_enabled(False)
 
             logger.info("Loading YOLO Pest Detection model from %s...", self.model_path)
             self.model = YOLO(str(self.model_path))
@@ -103,21 +110,10 @@ class PestDetectionService:
             else:
                 self.class_names = {}
 
-            # Attempt to extract checkpoint training metrics if present
-            try:
-                ckpt = torch.load(str(self.model_path), map_location="cpu", weights_only=False)
-                if isinstance(ckpt, dict):
-                    self.train_metrics = ckpt.get("train_metrics", {})
-            except Exception:
-                self.train_metrics = {}
-
             self.is_loaded = True
             self.load_error = None
-            logger.info(
-                "YOLO Pest Detection model loaded successfully: %s (%d classes)", 
-                self.model_path.name, 
-                len(self.class_names)
-            )
+            gc.collect()
+            logger.info("YOLO Pest Detection model loaded successfully (%d classes).", len(self.class_names))
             return True
 
         except Exception as e:

@@ -5,13 +5,28 @@ import logging
 import threading
 import time
 import uuid
+import gc
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
 
 import numpy as np
 from PIL import Image
-import tensorflow as tf
+
+# Multi-backend LiteRT / TFLite interpreter loader
+Interpreter = None
+try:
+    from ai_edge_litert.interpreter import Interpreter
+except ImportError:
+    try:
+        import tflite_runtime.interpreter as _tflite
+        Interpreter = _tflite.Interpreter
+    except ImportError:
+        try:
+            import tensorflow as tf
+            Interpreter = tf.lite.Interpreter
+        except ImportError:
+            Interpreter = None
 
 from ..config import (
     NUTRIENT_MODEL_PATH,
@@ -49,7 +64,7 @@ class NutrientDeficiencyService:
 
         self.model_path = NUTRIENT_MODEL_PATH
         self.labels_path = NUTRIENT_LABELS_PATH
-        self.interpreter: Optional[tf.lite.Interpreter] = None
+        self.interpreter: Optional[Any] = None
         self.input_details: List[Dict[str, Any]] = []
         self.output_details: List[Dict[str, Any]] = []
         self.class_names: List[str] = []
@@ -62,41 +77,53 @@ class NutrientDeficiencyService:
         self.training_log: List[Dict[str, Any]] = []
         self.manifest_summary: Dict[str, Any] = {}
 
-        self.load_model()
+        # Preload labels (tiny JSON)
+        if self.labels_path.exists():
+            try:
+                with open(self.labels_path, "r", encoding="utf-8") as f:
+                    self.class_names = json.load(f)
+            except Exception as e:
+                logger.warning("Failed to load nutrient labels: %s", e)
+
         self._load_reports_and_metadata()
         self._initialized = True
 
-    def load_model(self) -> bool:
-        try:
-            if not self.model_path.exists():
-                raise FileNotFoundError(f"Nutrient TFLite model not found at: {self.model_path}")
-
-            if not self.labels_path.exists():
-                raise FileNotFoundError(f"Nutrient class labels not found at: {self.labels_path}")
-
-            with open(self.labels_path, "r", encoding="utf-8") as f:
-                self.class_names = json.load(f)
-
-            self.interpreter = tf.lite.Interpreter(model_path=str(self.model_path))
-            self.interpreter.allocate_tensors()
-
-            self.input_details = self.interpreter.get_input_details()
-            self.output_details = self.interpreter.get_output_details()
-            self.is_loaded = True
-            self.load_error = None
-
-            logger.info(
-                "Nutrient Deficiency TFLite model loaded successfully from %s (%d classes)",
-                self.model_path,
-                len(self.class_names)
-            )
+    def ensure_loaded(self) -> bool:
+        if self.is_loaded and self.interpreter is not None:
             return True
+        return self.load_model()
 
-        except Exception as e:
-            self.is_loaded = False
-            self.load_error = str(e)
-            logger.error("Failed to load Nutrient Deficiency model: %s", e)
-            return False
+    def load_model(self) -> bool:
+        with self.inference_lock:
+            if self.is_loaded and self.interpreter is not None:
+                return True
+            try:
+                if not self.model_path.exists():
+                    raise FileNotFoundError(f"Nutrient TFLite model not found at: {self.model_path}")
+
+                if not self.class_names and self.labels_path.exists():
+                    with open(self.labels_path, "r", encoding="utf-8") as f:
+                        self.class_names = json.load(f)
+
+                if Interpreter is None:
+                    raise ImportError("No LiteRT, tflite-runtime, or TensorFlow runtime installed.")
+
+                self.interpreter = Interpreter(model_path=str(self.model_path))
+                self.interpreter.allocate_tensors()
+
+                self.input_details = self.interpreter.get_input_details()
+                self.output_details = self.interpreter.get_output_details()
+                self.is_loaded = True
+                self.load_error = None
+                gc.collect()
+                logger.info("Nutrient Deficiency model loaded successfully (%d classes)", len(self.class_names))
+                return True
+            except Exception as e:
+                self.is_loaded = False
+                self.load_error = str(e)
+                logger.error("Failed to load Nutrient model: %s", e)
+                return False
+
 
     def _load_reports_and_metadata(self):
         """Loads precomputed classification report, training log, and dataset manifest."""
@@ -264,6 +291,7 @@ class NutrientDeficiencyService:
         """
         Runs inference on single leaf image bytes for nutrient deficiency classification.
         """
+        self.ensure_loaded()
         if not self.is_loaded or not self.interpreter:
             raise RuntimeError(f"Nutrient Deficiency model is not loaded: {self.load_error}")
 
@@ -278,9 +306,11 @@ class NutrientDeficiencyService:
             raw_output = self.interpreter.get_tensor(output_idx)[0]
         inference_time_ms = round((time.perf_counter() - t0) * 1000, 2)
 
-        # Apply softmax if needed
+        # Apply softmax if needed using pure numpy
         if not np.isclose(np.sum(raw_output), 1.0, atol=0.05):
-            probs = tf.nn.softmax(raw_output).numpy()
+            shift = raw_output - np.max(raw_output)
+            exps = np.exp(shift)
+            probs = exps / np.sum(exps)
         else:
             probs = raw_output
 

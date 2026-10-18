@@ -3,7 +3,6 @@ import uuid
 from datetime import datetime
 from typing import Dict, Any, Optional
 import numpy as np
-import tensorflow as tf
 
 from .model_loader import model_manager
 from .preprocessing import preprocess_image
@@ -11,6 +10,7 @@ from .disease_info import get_disease_info
 from .config import CONFIDENCE_THRESHOLD
 
 def run_single_inference(image_bytes: bytes, filename: str = "upload.jpg", ground_truth: Optional[str] = None, threshold: float = CONFIDENCE_THRESHOLD) -> Dict[str, Any]:
+    model_manager.ensure_loaded()
     if not model_manager.is_loaded or not model_manager.interpreter:
         raise RuntimeError(f"TFLite model is not loaded: {model_manager.load_error}")
 
@@ -45,7 +45,9 @@ def run_single_inference(image_bytes: bytes, filename: str = "upload.jpg", groun
 
     # Softmax conversion if values are raw logits
     if not np.isclose(np.sum(raw_output), 1.0, atol=0.05):
-        probs = tf.nn.softmax(raw_output).numpy()
+        shift = raw_output - np.max(raw_output)
+        exps = np.exp(shift)
+        probs = exps / np.sum(exps)
     else:
         probs = raw_output
 

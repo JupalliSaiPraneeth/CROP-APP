@@ -26,27 +26,11 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Initializing 4-Model Crop, Pest, Nutrient & Yield AI Services...")
-    if model_manager.is_loaded:
-        logger.info("Crop Disease model loaded: %s (%d classes)", model_manager.model_path.name, len(model_manager.class_names))
-    else:
-        logger.warning("Crop Disease model failed to load at startup: %s", model_manager.load_error)
-
-    if pest_service.is_loaded:
-        logger.info("YOLO Pest Detection model loaded: %s (%d classes)", pest_service.model_path.name, len(pest_service.class_names))
-    else:
-        logger.warning("YOLO Pest Detection model failed to load at startup: %s", pest_service.load_error)
-
-    if nutrient_service.is_loaded:
-        logger.info("Nutrient Deficiency model loaded: %s (%d classes)", nutrient_service.model_path.name, len(nutrient_service.class_names))
-    else:
-        logger.warning("Nutrient Deficiency model failed to load at startup: %s", nutrient_service.load_error)
-
-    if yield_service.is_loaded:
-        logger.info("Crop Yield Random Forest model loaded: %s (%d crops, %d states, %d districts)", yield_service.model_path.name, len(yield_service.crops), len(yield_service.states), len(yield_service.districts))
-    else:
-        logger.warning("Crop Yield model failed to load at startup: %s", yield_service.load_error)
+    logger.info("CropAI 5-Model Engine ready to serve (Low-memory lazy-loading enabled).")
+    logger.info("Loaded metadata: %d yield crops, %d states, %d districts, 13 market commodities.", 
+                len(yield_service.crops), len(yield_service.states), len(yield_service.districts))
     yield
+    logger.info("CropAI server shutting down.")
 
 app = FastAPI(
     title="CropAI AgTech Suite — Disease, Pest, Nutrient & Yield AI",
