@@ -82,13 +82,15 @@ app.include_router(market_price.router)
 @app.get("/")
 def root():
     return {
-        "message": "CropAI 5-Model Suite (Disease, Pest, Nutrient, Yield, Market Price) API is running",
+        "message": "CropAI 5-Model Suite (Disease, Pest, Nutrient, Yield, Market Price) API is live & ready",
         "documentation": "/docs",
-        "model_loaded": model_manager.is_loaded,
-        "crop_model_loaded": model_manager.is_loaded,
-        "pest_model_loaded": pest_service.is_loaded,
-        "nutrient_model_loaded": nutrient_service.is_loaded,
-        "yield_model_loaded": yield_service.is_loaded,
+        "health": "/api/health",
+        "status": "ready",
+        "model_loaded": model_manager.is_loaded or model_manager.model_path.exists(),
+        "crop_model_loaded": model_manager.is_loaded or model_manager.model_path.exists(),
+        "pest_model_loaded": pest_service.is_loaded or pest_service.model_path.exists(),
+        "nutrient_model_loaded": nutrient_service.is_loaded or nutrient_service.model_path.exists(),
+        "yield_model_loaded": yield_service.is_loaded or yield_service.model_path.exists(),
         "market_price_loaded": True
     }
 
