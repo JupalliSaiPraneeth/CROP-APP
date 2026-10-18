@@ -29,7 +29,7 @@ export default function PestDetection({ setActiveTab }) {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [confidenceThreshold, setConfidenceThreshold] = useState(0.15);
   const [iouThreshold, setIouThreshold] = useState(0.60);
-  const [imgsz, setImgsz] = useState(1024);
+  const [imgsz, setImgsz] = useState(640);
   const [augment, setAugment] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -132,11 +132,11 @@ export default function PestDetection({ setActiveTab }) {
   const applySensitivityPreset = (preset) => {
     if (preset === 'high') {
       setConfidenceThreshold(0.08);
-      setImgsz(1024);
-      setAugment(true);
+      setImgsz(640);
+      setAugment(false);
     } else if (preset === 'balanced') {
       setConfidenceThreshold(0.15);
-      setImgsz(1024);
+      setImgsz(640);
       setAugment(false);
     } else if (preset === 'precision') {
       setConfidenceThreshold(0.30);
@@ -355,11 +355,12 @@ export default function PestDetection({ setActiveTab }) {
                       onChange={(e) => setImgsz(parseInt(e.target.value))}
                       className="w-full mt-1 px-2 py-1 bg-white border border-slate-200 rounded text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-forest-600"
                     >
-                      <option value={1024}>1024px (High-Res, Best for Small Pests)</option>
+                      <option value={640}>640px (Standard, Fast & Responsive ~100ms)</option>
+                      <option value={512}>512px (Ultra-Fast CPU / Mobile Speed)</option>
+                      <option value={1024}>1024px (High-Res, Small Pests / Drone Photos)</option>
                       <option value={1280}>1280px (Ultra-Res, Maximum Detail)</option>
-                      <option value={640}>640px (Standard, Fastest CPU)</option>
                     </select>
-                    <p className="text-[10px] text-slate-400 mt-1">Higher res prevents downsampling loss</p>
+                    <p className="text-[10px] text-slate-400 mt-1">640px provides optimal speed and high accuracy</p>
                   </div>
 
                   {/* Multi-Scale TTA Toggle */}
@@ -404,7 +405,7 @@ export default function PestDetection({ setActiveTab }) {
                   {loading ? (
                     <>
                       <Activity className="w-4 h-4 animate-spin text-slate-500" />
-                      Running High-Res YOLO11 Pest Inference ({imgsz}px)...
+                      Running Real-Time YOLO11 Pest Inference ({imgsz}px)...
                     </>
                   ) : (
                     <>
@@ -543,30 +544,44 @@ export default function PestDetection({ setActiveTab }) {
                   <div>
                     <h4 className="font-bold text-slate-900 text-sm">No Pests Localized at {(confidenceThreshold * 100).toFixed(0)}%</h4>
                     <p className="text-xs text-slate-500 leading-relaxed max-w-sm mx-auto mt-1">
-                      Pests in field photos may be small, partially occluded, or have lower confidence scores.
+                      No agricultural insect pests or larvae were identified in this photograph.
                     </p>
                   </div>
 
                   <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-lg text-left text-xs space-y-2">
                     <p className="font-semibold text-amber-900 flex items-center gap-1.5">
                       <Zap className="w-3.5 h-3.5 text-amber-600" />
-                      Suggested Action:
+                      Suggested Actions:
                     </p>
                     <p className="text-[11px] text-amber-800">
-                      Switch to <b>High Sensitivity (8%)</b> with <b>1024px Resolution</b> and <b>Enhanced Recall (TTA)</b> to capture faint and subtle insect targets.
+                      If insects are subtle or small, re-scan with High Sensitivity (8%). If this photograph shows leaf spots, blight, or discoloration, analyze with Crop Disease AI.
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setConfidenceThreshold(0.08);
-                        setImgsz(1024);
-                        setAugment(true);
-                        executeDetection(0.08, 1024, true);
-                      }}
-                      className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 mt-1"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" /> Re-scan with High Sensitivity Mode
-                    </button>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConfidenceThreshold(0.08);
+                          setImgsz(640);
+                          setAugment(false);
+                          executeDetection(0.08, 640, false);
+                        }}
+                        className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" /> Re-scan at 8% (Fast)
+                      </button>
+                      {setActiveTab && (
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('detection')}
+                          className="w-full py-2 bg-forest-700 hover:bg-forest-800 text-white rounded font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+                        >
+                          <Sprout className="w-3.5 h-3.5" /> Open Disease AI
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-amber-700/80 pt-1">
+                      💡 <b>Agronomist Tip:</b> Leaf lesions, necrotic spots, and mildew are fungal/bacterial diseases diagnosed in the Disease tab!
+                    </p>
                   </div>
                 </div>
               )}

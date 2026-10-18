@@ -23,7 +23,7 @@ GUARD_MODEL_PATH = Path(os.getenv("GUARD_MODEL_PATH", str(MODELS_DIR / "yolo11n.
 PEST_GUARD_ENABLED = os.getenv("PEST_GUARD_ENABLED", "true").lower() in ("1", "true", "yes")
 PEST_CONFIDENCE_THRESHOLD = float(os.getenv("PEST_CONFIDENCE_THRESHOLD", "0.15"))
 PEST_IOU_THRESHOLD = float(os.getenv("PEST_IOU_THRESHOLD", "0.60"))
-PEST_DEFAULT_IMGSZ = int(os.getenv("PEST_DEFAULT_IMGSZ", "1024"))
+PEST_DEFAULT_IMGSZ = int(os.getenv("PEST_DEFAULT_IMGSZ", "640"))
 
 # Reporting & session limits
 MAX_UPLOAD_SIZE_MB = int(os.getenv("MAX_UPLOAD_SIZE_MB", "15"))

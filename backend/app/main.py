@@ -29,6 +29,21 @@ async def lifespan(app: FastAPI):
     logger.info("CropAI 5-Model Engine ready to serve (Low-memory lazy-loading enabled).")
     logger.info("Loaded metadata: %d yield crops, %d states, %d districts, 13 market commodities.", 
                 len(yield_service.crops), len(yield_service.states), len(yield_service.districts))
+
+    # Pre-warm YOLO pest model in background thread to eliminate user cold-start latency
+    import threading
+    def _warmup_background():
+        try:
+            logger.info("Pre-warming YOLO Pest Detection and Guard models...")
+            pest_service.ensure_loaded()
+            if pest_service.guard_enabled:
+                pest_service.load_guard_model()
+            logger.info("YOLO models warmed up and ready for instant inference.")
+        except Exception as e:
+            logger.warning("Background warmup notice: %s", e)
+
+    threading.Thread(target=_warmup_background, daemon=True).start()
+
     yield
     logger.info("CropAI server shutting down.")
 

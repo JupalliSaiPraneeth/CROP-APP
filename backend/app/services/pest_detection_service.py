@@ -88,14 +88,17 @@ class PestDetectionService:
                     "Please verify best.pt is located in models/IP102_Pest_Detection/."
                 )
 
-            # Lazy import ultralytics & torch with single-threaded execution to conserve memory
+            # Multi-threaded CPU execution: Use up to 4 threads for fast parallel convolutions
             from ultralytics import YOLO
             import torch
             import gc
-            torch.set_num_threads(1)
+            import os
+
+            num_threads = int(os.getenv("TORCH_THREADS", str(min(4, max(1, os.cpu_count() or 1)))))
+            torch.set_num_threads(num_threads)
             torch.set_grad_enabled(False)
 
-            logger.info("Loading YOLO Pest Detection model from %s...", self.model_path)
+            logger.info("Loading YOLO Pest Detection model from %s (CPU threads=%d)...", self.model_path, num_threads)
             self.model = YOLO(str(self.model_path))
 
             # Read actual class names directly from the model metadata
@@ -110,10 +113,17 @@ class PestDetectionService:
             else:
                 self.class_names = {}
 
+            # Kernel warmup pass so first user request encounters 0 compile/caching latency
+            try:
+                dummy = np.zeros((320, 320, 3), dtype=np.uint8)
+                self.model.predict(source=dummy, imgsz=320, device="cpu", verbose=False)
+            except Exception as we:
+                logger.debug("Model warmup notice: %s", we)
+
             self.is_loaded = True
             self.load_error = None
             gc.collect()
-            logger.info("YOLO Pest Detection model loaded successfully (%d classes).", len(self.class_names))
+            logger.info("YOLO Pest Detection model loaded and warmed up successfully (%d classes).", len(self.class_names))
             return True
 
         except Exception as e:
@@ -137,7 +147,15 @@ class PestDetectionService:
             logger.info("Loading YOLO Out-of-Domain Guard model from %s...", self.guard_model_path)
             self.guard_model = YOLO(str(self.guard_model_path))
             self.guard_loaded = True
-            logger.info("YOLO Guard model loaded successfully.")
+
+            # Fast warmup pass for guard model
+            try:
+                dummy = np.zeros((320, 320, 3), dtype=np.uint8)
+                self.guard_model.predict(source=dummy, classes=[0], imgsz=320, device="cpu", verbose=False)
+            except Exception as we:
+                logger.debug("Guard warmup notice: %s", we)
+
+            logger.info("YOLO Guard model loaded and warmed up successfully.")
             return True
         except Exception as e:
             self.guard_loaded = False
@@ -288,6 +306,10 @@ class PestDetectionService:
             raise ValueError(f"Corrupted or invalid image data: {str(e)}")
 
         orig_w, orig_h = image.size
+        # Fast bounds check: limit extreme image dimensions to 2048px to prevent CPU stalls & memory bottlenecks
+        if max(orig_w, orig_h) > 2048:
+            image.thumbnail((2048, 2048), Image.Resampling.BILINEAR)
+            orig_w, orig_h = image.size
 
         # Clamp thresholds and image sizes
         conf = max(0.01, min(float(confidence_threshold), 0.99))
@@ -310,11 +332,12 @@ class PestDetectionService:
             if self.guard_model is not None:
                 try:
                     with self.inference_lock:
+                        # Fast 320px human guard pass (<50ms)
                         guard_res = self.guard_model.predict(
                             source=image,
                             classes=[0],  # COCO class 0 = 'person'
-                            conf=0.20,
-                            imgsz=640,
+                            conf=0.25,
+                            imgsz=320,
                             device="cpu",
                             verbose=False
                         )
