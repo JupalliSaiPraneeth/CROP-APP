@@ -30,6 +30,9 @@ export const HomeScreen = ({ navigation }: any) => {
 
   useEffect(() => {
     fetchHealth();
+    // Automatically poll every 12 seconds to auto-connect as soon as Render wakes up
+    const interval = setInterval(fetchHealth, 12000);
+    return () => clearInterval(interval);
   }, [fetchHealth]);
 
   const onRefresh = async () => {

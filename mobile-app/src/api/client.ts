@@ -87,7 +87,7 @@ export const api = {
   async checkHealth(): Promise<HealthResponse> {
     try {
       const base = await getBaseUrl();
-      const res = await fetchWithTimeout(`${base}/api/health`, { method: 'GET' }, 8000);
+      const res = await fetchWithTimeout(`${base}/api/health`, { method: 'GET' }, 35000);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.json();
     } catch (err: any) {
