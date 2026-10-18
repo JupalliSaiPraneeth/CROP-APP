@@ -61,8 +61,8 @@ const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutM
   }
 };
 
-// Helper: format local image URI into React Native FormData
-const appendImageToFormData = (formData: FormData, fieldName: string, imageUri: string) => {
+// Helper: format local image URI into modern Web-standard FormData (Blob)
+const appendImageToFormData = async (formData: FormData, fieldName: string, imageUri: string) => {
   const uriParts = imageUri.split('/');
   const fileName = uriParts[uriParts.length - 1] || 'photo.jpg';
   const fileExt = fileName.split('.').pop()?.toLowerCase();
@@ -70,12 +70,19 @@ const appendImageToFormData = (formData: FormData, fieldName: string, imageUri: 
   if (fileExt === 'png') mimeType = 'image/png';
   if (fileExt === 'webp') mimeType = 'image/webp';
 
-  // React Native file attachment format
-  formData.append(fieldName, {
-    uri: imageUri,
-    name: fileName,
-    type: mimeType,
-  } as any);
+  try {
+    // Modern Expo & React Native (SDK 52+ / RN 0.76+): convert local file to standard Blob
+    const response = await fetch(imageUri);
+    const blob = await response.blob();
+    formData.append(fieldName, blob, fileName);
+  } catch {
+    // Fallback if local blob conversion is unsupported
+    formData.append(fieldName, {
+      uri: imageUri,
+      name: fileName,
+      type: mimeType,
+    } as any);
+  }
 };
 
 export const api = {
@@ -103,7 +110,7 @@ export const api = {
   async predictDisease(imageUri: string, threshold = 0.60): Promise<PredictionResponse> {
     const base = await getBaseUrl();
     const formData = new FormData();
-    appendImageToFormData(formData, 'file', imageUri);
+    await appendImageToFormData(formData, 'file', imageUri);
     formData.append('threshold', threshold.toString());
 
     const res = await fetchWithTimeout(`${base}/api/predict`, {
@@ -112,7 +119,7 @@ export const api = {
       headers: {
         'Accept': 'application/json',
       },
-    }, 30000);
+    }, 35000);
 
     if (!res.ok) {
       const errorJson = await res.json().catch(() => ({ detail: 'Prediction failed' }));
@@ -125,7 +132,7 @@ export const api = {
   async predictPest(imageUri: string, confidenceThreshold = 0.15): Promise<PestDetectionResponse> {
     const base = await getBaseUrl();
     const formData = new FormData();
-    appendImageToFormData(formData, 'file', imageUri);
+    await appendImageToFormData(formData, 'file', imageUri);
     formData.append('confidence_threshold', confidenceThreshold.toString());
     formData.append('iou_threshold', '0.60');
     formData.append('imgsz', '1024');
@@ -149,7 +156,7 @@ export const api = {
   async predictNutrient(imageUri: string, cropHint?: string): Promise<NutrientPredictionResponse> {
     const base = await getBaseUrl();
     const formData = new FormData();
-    appendImageToFormData(formData, 'file', imageUri);
+    await appendImageToFormData(formData, 'file', imageUri);
     formData.append('threshold', '0.50');
     if (cropHint && cropHint !== 'All') {
       formData.append('crop_hint', cropHint);
@@ -161,7 +168,7 @@ export const api = {
       headers: {
         'Accept': 'application/json',
       },
-    }, 30000);
+    }, 35000);
 
     if (!res.ok) {
       const errorJson = await res.json().catch(() => ({ detail: 'Nutrient analysis failed' }));
