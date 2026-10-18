@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "CropAI",
+    "slug": "cropai-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#064E3B",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "org.cropai.ecosystem.mobile",
+      "infoPlist": {
+        "NSCameraUsageDescription": "CropAI requires camera access to photograph diseased crop leaves and insect pests in the field.",
+        "NSPhotoLibraryUsageDescription": "CropAI needs photo library access to upload saved leaf and pest images for AI diagnosis."
+      }
+    },
+    "android": {
+      "package": "org.cropai.ecosystem.mobile",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#064E3B",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "INTERNET"
+      ],
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "apiUrl": "https://crop-app-419s.onrender.com",
+      "eas": {
+        "projectId": ""
+      }
+    }
+  }
+}
