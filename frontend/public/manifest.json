@@ -1,0 +1,19 @@
+{
+  "name": "CropAI Ecosystem — Smart Agriculture Intelligence",
+  "short_name": "CropAI",
+  "description": "Comprehensive AI platform for crop disease diagnosis, pest detection, nutrient deficiency, harvest yield forecasting, and market price intelligence.",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#15803d",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

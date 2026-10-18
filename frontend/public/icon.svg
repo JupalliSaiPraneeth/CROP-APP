@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <rect width="512" height="512" rx="128" fill="#15803d"/>
+  <path d="M256 96C167.6 96 96 167.6 96 256c0 88.4 71.6 160 160 160s160-71.6 160-160C416 167.6 344.4 96 256 96z" fill="#166534"/>
+  <path d="M256 128c-70.7 0-128 57.3-128 128 0 70.7 57.3 128 128 128 70.7 0 128-57.3 128-128 0-70.7-57.3-128-128-128z" fill="#059669"/>
+  <!-- Leaf shape -->
+  <path d="M160 352c0-106 86-192 192-192 0 106-86 192-192 192z" fill="#34d399"/>
+  <!-- Leaf stem / AI neural line -->
+  <path d="M160 352c40-40 80-80 192-192" stroke="#ffffff" stroke-width="16" stroke-linecap="round"/>
+  <circle cx="256" cy="256" r="14" fill="#ffffff"/>
+  <circle cx="210" cy="302" r="10" fill="#ffffff"/>
+  <circle cx="302" cy="210" r="10" fill="#ffffff"/>
+  <circle cx="352" cy="160" r="12" fill="#fde047"/>
+</svg>

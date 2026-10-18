@@ -1,0 +1,20 @@
+{
+    "model_name": "Crop Yield Prediction",
+    "algorithm": "Random Forest Regressor",
+    "target": "Yield",
+    "categorical_features": [
+        "State_Name",
+        "District_Name",
+        "Season",
+        "Crop"
+    ],
+    "numeric_features": [
+        "Crop_Year",
+        "Area"
+    ],
+    "metrics": {
+        "MAE": 14.2503,
+        "RMSE": 307.7464,
+        "R2": 0.7921
+    }
+}

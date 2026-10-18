@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">CropAI</string>
+    <string name="title_activity_main">CropAI</string>
+    <string name="package_name">org.cropai.ecosystem</string>
+    <string name="custom_url_scheme">org.cropai.ecosystem</string>
+</resources>

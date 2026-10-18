@@ -1,0 +1,61 @@
+# Python & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Testing & Caches
+.pytest_cache/
+.coverage
+htmlcov/
+.cache/
+
+# Datasets (Training archives exceed GitHub's 100MB limit)
+datasets/
+*.zip
+*.tar.gz
+*.7z
+
+# Frontend & Node
+node_modules/
+frontend/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-debug.log*
+
+# Build outputs (Vercel builds dist fresh on deployment)
+frontend/dist/
+dist/
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
+# Android & Gradle Build Artifacts
+.gradle/
+**/android/.gradle/
+**/android/app/build/
+**/android/build/
+**/capacitor-cordova-android-plugins/build/
+**/local.properties
+*.hprof
+
+# IDEs & System Files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

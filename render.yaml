@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: cropai-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    region: oregon
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: CORS_ORIGIN_REGEX
+        value: "https://.*\\.vercel\\.app"
